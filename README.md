@@ -1,56 +1,112 @@
-# Welcome to your Expo app 👋
+# Smart Cold Storage (T1 Theme) 👋
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+An intelligent, multi-language React Native mobile application built on Expo SDK 57 for managing and monitoring cold storage facilities, chambers, active crop batches, sensor health diagnostics, and sharing permissions.
 
-## Get started
+## 🚀 Key Features
 
-1. Install dependencies
+* **Visual Dashboard (Home)**: High-level metrics summaries (Healthy, Warning, Critical, Offline), urgent warning alerts banner, quick filter chips, and interactive storage capacity cards.
+* **Compact Device Details**: Lists total chambers and batch quantities. View live temperature/humidity sensor readings, toggle active crops, or safely archive batches.
+* **Crop Profiles Library**: Supports standard crops (Tomato, Potato, Banana, Apple, Mango, etc.) and allows creating custom crops with optimal ranges for temperature, humidity, storage time, and maturity stages.
+* **Local Alert Notifications**: Critical/Warning system notices with diagnostic descriptions, recommended fix suggestions, and read state markers.
+* **Multi-Language Support (l10n)**: Dynamically switch application text between:
+  * 🇬🇧 English
+  * 🇮🇳 Hindi (हिन्दी)
+  * 🇮🇳 Telugu (తెలుగు)
+  * 🇮🇳 Marathi (मరాఠీ)
+* **Access Sharing Management**: Grant and revoke device access keys for Managers, Technicians, or Viewers.
+* **Offline Storage Engine**: Fully persistent local database backing all CRUD transactions using `@react-native-async-storage/async-storage`.
 
-   ```bash
-   npm install
-   ```
+---
 
-2. Start the app
+## 🛠️ Technology Stack
 
-   ```bash
-   npx expo start
-   ```
+* **Framework**: React Native + Expo (SDK 57)
+* **Language**: TypeScript
+* **Routing**: Custom State-Based Router Stack (inside [AppContext.tsx](src/context/AppContext.tsx)) for navigation stability and back-action handling.
+* **State Management**: React Context (`AppProvider`)
+* **Storage**: AsyncStorage
+* **Icons**: `@expo/vector-icons` (MaterialIcons)
 
-In the output, you'll find options to open the app in a
+---
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## 📂 Project Directory Structure
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```text
+cold_app/
+├── assets/             # Media and icon assets
+├── dist/               # Exported native bundles
+├── src/
+│   ├── app/
+│   │   ├── _layout.tsx # Root layout wrapping AppProvider
+│   │   └── index.tsx   # Custom state-router screen entry point
+│   ├── components/     # Reusable UI widgets
+│   │   ├── EmptyState.tsx
+│   │   ├── HealthScore.tsx
+│   │   ├── NavigationShell.tsx (Bottom tab layout)
+│   │   └── StatusBadge.tsx
+│   ├── constants/
+│   │   └── theme.ts    # HSL color palettes and theme configs (T1 Theme)
+│   ├── data/
+│   │   └── db.ts       # Database models and seed mock records
+│   ├── utils/
+│   │   ├── date.ts     # Date parser and timeAgo calculators
+│   │   └── l10n.ts     # Translation dictionaries
+│   └── views/          # Screen components
+│       ├── auth/
+│       │   ├── LoginScreen.tsx
+│       │   └── SignupScreen.tsx
+│       ├── AddBatchScreen.tsx
+│       ├── AddDeviceScreen.tsx
+│       ├── AlertsScreen.tsx
+│       ├── DeviceDetailScreen.tsx
+│       ├── DeviceHealthScreen.tsx
+│       ├── DeviceShareScreen.tsx
+│       ├── DevicesScreen.tsx
+│       ├── HomeScreen.tsx
+│       ├── LibraryScreen.tsx
+│       └── ProfileScreen.tsx
+├── package.json
+└── tsconfig.json
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+---
 
-### Other setup steps
+## 🏁 Getting Started
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+### 1. Install Dependencies
 
-## Learn more
+Clone the repository and install packages:
 
-To learn more about developing your project with Expo, look at the following resources:
+```bash
+npm install
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+### 2. Run the Development Server
 
-## Join the community
+Start the Metro bundler:
 
-Join our community of developers creating universal apps.
+```bash
+npm run start
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+* Press `w` to open the app on a web browser.
+* Press `a` to open on an Android emulator (requires Android Studio).
+* Press `i` to open on an iOS simulator (requires macOS Xcode).
+* Scan the QR code with the Expo Go app on your phone to run it on a real mobile device.
+
+### 3. Type Checking
+
+Run TypeScript checks to ensure correctness:
+
+```bash
+npx tsc --noEmit
+```
+
+### 4. Build Production Bundles
+
+To test the bundler export compatibility:
+
+```bash
+npx expo export
+```
+This generates optimized static files inside the `dist/` directory.
