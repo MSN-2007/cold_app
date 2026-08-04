@@ -71,7 +71,8 @@ export const HomeScreen = () => {
           onPress={() => navigateTo('add-device')}
           activeOpacity={0.8}
         >
-          <MaterialIcons name="add" size={24} color="#FFFFFF" />
+          <MaterialIcons name="add" size={20} color="#FFFFFF" style={{ marginRight: 4 }} />
+          <Text style={styles.addButtonText}>Add Storage</Text>
         </TouchableOpacity>
       </View>
 
@@ -224,6 +225,16 @@ export const HomeScreen = () => {
           })
         )}
       </ScrollView>
+
+      {/* Floating Action Button */}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => navigateTo('add-device')}
+        activeOpacity={0.85}
+      >
+        <MaterialIcons name="add" size={24} color="#FFFFFF" />
+        <Text style={styles.fabText}>Add Storage</Text>
+      </TouchableOpacity>
     </SafeAreaView>
   );
 };
@@ -232,6 +243,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.light.background,
+    position: 'relative',
   },
   header: {
     flexDirection: 'row',
@@ -255,9 +267,10 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   addButton: {
+    flexDirection: 'row',
     backgroundColor: Colors.primary,
-    width: 40,
-    height: 40,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
@@ -266,6 +279,34 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 2,
+  },
+  addButtonText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  fab: {
+    position: 'absolute',
+    bottom: 75,
+    right: 16,
+    flexDirection: 'row',
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 6,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    gap: 6,
+  },
+  fabText: {
+    color: '#FFFFFF',
+    fontSize: FontSizes.sm,
+    fontWeight: '700',
   },
   scrollContent: {
     padding: Spacing.md,

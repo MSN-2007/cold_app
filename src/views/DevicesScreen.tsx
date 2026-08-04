@@ -19,7 +19,8 @@ export const DevicesScreen = () => {
           onPress={() => navigateTo('add-device')}
           activeOpacity={0.8}
         >
-          <MaterialIcons name="add" size={24} color="#FFFFFF" />
+          <MaterialIcons name="add" size={20} color="#FFFFFF" style={{ marginRight: 4 }} />
+          <Text style={styles.addButtonText}>Add Device</Text>
         </TouchableOpacity>
       </View>
 
@@ -110,12 +111,18 @@ const styles = StyleSheet.create({
     color: Colors.light.textPrimary,
   },
   addButton: {
+    flexDirection: 'row',
     backgroundColor: Colors.primary,
-    width: 40,
-    height: 40,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  addButtonText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
   },
   scrollContent: {
     padding: Spacing.md,

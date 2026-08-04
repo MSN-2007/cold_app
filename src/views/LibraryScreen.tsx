@@ -3,10 +3,11 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Mod
 import { useApp } from '../context/AppContext';
 import { Colors, Border, FontSizes, Spacing } from '../constants/theme';
 import { MaterialIcons } from '@expo/vector-icons';
-import { CropProfile } from '../data/db';
+import { CropProfile, Facility } from '../data/db';
 
 export const LibraryScreen = () => {
-  const { crops, addCustomCrop, removeCrop, getString } = useApp();
+  const { crops, facilities, addCustomCrop, removeCrop, removeFacility, navigateTo, getString } = useApp();
+  const [activeTab, setActiveTab] = useState<'crops' | 'facilities'>('facilities');
   const [modalVisible, setModalVisible] = useState(false);
 
   // Custom Crop fields
@@ -111,27 +112,142 @@ export const LibraryScreen = () => {
     );
   };
 
+  const renderFacilityCard = (fac: Facility) => {
+    return (
+      <View key={fac.id} style={styles.facilityCard}>
+        <View style={styles.cardHeader}>
+          <View style={styles.facIconBox}>
+            <MaterialIcons name="apartment" size={24} color={Colors.primary} />
+          </View>
+          <View style={styles.titleContainer}>
+            <Text style={styles.cropName}>{fac.name}</Text>
+            <Text style={styles.facCode}>
+              Code: {fac.facilityCode} · {fac.type}
+            </Text>
+          </View>
+          <TouchableOpacity 
+            style={styles.deleteButton} 
+            onPress={() => removeFacility(fac.id)}
+          >
+            <MaterialIcons name="delete-outline" size={20} color={Colors.critical} />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.facDetailsBox}>
+          <View style={styles.facDetailRow}>
+            <MaterialIcons name="place" size={16} color={Colors.light.textSecondary} />
+            <Text style={styles.facDetailText}>{fac.location}</Text>
+          </View>
+          <View style={styles.facDetailRow}>
+            <MaterialIcons name="storage" size={16} color={Colors.light.textSecondary} />
+            <Text style={styles.facDetailText}>Total Capacity: {fac.totalCapacity} Tons</Text>
+          </View>
+          <View style={styles.facDetailRow}>
+            <MaterialIcons name="ac-unit" size={16} color={Colors.light.textSecondary} />
+            <Text style={styles.facDetailText}>{fac.climateZone}</Text>
+          </View>
+          <View style={styles.facDetailRow}>
+            <MaterialIcons name="person" size={16} color={Colors.light.textSecondary} />
+            <Text style={styles.facDetailText}>Manager: {fac.managerName || 'Staff'}</Text>
+          </View>
+        </View>
+
+        <View style={styles.facFooter}>
+          <View style={styles.methodBadge}>
+            <MaterialIcons name="qr-code-scanner" size={14} color={Colors.primary} />
+            <Text style={styles.methodBadgeText}>Via {fac.connectionMethod}</Text>
+          </View>
+          <View style={styles.statusActiveBadge}>
+            <Text style={styles.statusActiveText}>{fac.status}</Text>
+          </View>
+        </View>
+      </View>
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container}>
+      {/* Top Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Crop Library</Text>
+        <Text style={styles.title}>Inventory & Library</Text>
         <TouchableOpacity 
           style={styles.addButton} 
-          onPress={() => setModalVisible(true)}
+          onPress={() => {
+            if (activeTab === 'facilities') {
+              navigateTo('add-facility');
+            } else {
+              setModalVisible(true);
+            }
+          }}
           activeOpacity={0.8}
         >
-          <MaterialIcons name="add" size={24} color="#FFFFFF" />
+          <MaterialIcons name="add" size={18} color="#FFFFFF" style={{ marginRight: 4 }} />
+          <Text style={styles.addButtonText}>
+            {activeTab === 'facilities' ? 'Add Facility' : 'Add Crop'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Segment Switcher */}
+      <View style={styles.segmentContainer}>
+        <TouchableOpacity 
+          style={[styles.segmentBtn, activeTab === 'facilities' && styles.segmentBtnActive]}
+          onPress={() => setActiveTab('facilities')}
+        >
+          <MaterialIcons name="apartment" size={18} color={activeTab === 'facilities' ? Colors.primary : Colors.light.textSecondary} />
+          <Text style={[styles.segmentBtnText, activeTab === 'facilities' && styles.segmentBtnTextActive]}>
+            Facilities Network ({facilities.length})
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={[styles.segmentBtn, activeTab === 'crops' && styles.segmentBtnActive]}
+          onPress={() => setActiveTab('crops')}
+        >
+          <MaterialIcons name="menu-book" size={18} color={activeTab === 'crops' ? Colors.primary : Colors.light.textSecondary} />
+          <Text style={[styles.segmentBtnText, activeTab === 'crops' && styles.segmentBtnTextActive]}>
+            Crop Profiles ({crops.length})
+          </Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.sectionTitle}>Company Library</Text>
-        {companyCrops.map(c => renderCropCard(c))}
-
-        {customCrops.length > 0 && (
+        {activeTab === 'facilities' ? (
           <>
-            <Text style={[styles.sectionTitle, { marginTop: Spacing.md }]}>Custom Crops</Text>
-            {customCrops.map(c => renderCropCard(c))}
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionTitle}>Registered Facilities</Text>
+              <TouchableOpacity onPress={() => navigateTo('add-facility')}>
+                <Text style={styles.linkText}>+ Add New Facility</Text>
+              </TouchableOpacity>
+            </View>
+
+            {facilities.length === 0 ? (
+              <View style={styles.emptyState}>
+                <MaterialIcons name="apartment" size={48} color={Colors.light.textHint} />
+                <Text style={styles.emptyTitle}>No Facilities Registered</Text>
+                <Text style={styles.emptySubtitle}>Register physical cold warehouses, packhouses, or transit hubs using QR, BLE, WiFi, or Unique Code.</Text>
+                <TouchableOpacity 
+                  style={styles.emptyBtn} 
+                  onPress={() => navigateTo('add-facility')}
+                >
+                  <Text style={styles.emptyBtnText}>+ Add Facility</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              facilities.map(fac => renderFacilityCard(fac))
+            )}
+          </>
+        ) : (
+          <>
+            <Text style={styles.sectionTitle}>Company Standard Library</Text>
+            {companyCrops.map(c => renderCropCard(c))}
+
+            {customCrops.length > 0 && (
+              <>
+                <Text style={[styles.sectionTitle, { marginTop: Spacing.md }]}>Custom Crops</Text>
+                {customCrops.map(c => renderCropCard(c))}
+              </>
+            )}
           </>
         )}
       </ScrollView>
@@ -146,7 +262,7 @@ export const LibraryScreen = () => {
         <View style={styles.modalBg}>
           <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Add Custom Crop</Text>
+              <Text style={styles.modalTitle}>Add Custom Crop Profile</Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
                 <MaterialIcons name="close" size={24} color={Colors.light.textPrimary} />
               </TouchableOpacity>
@@ -227,7 +343,7 @@ export const LibraryScreen = () => {
               </View>
 
               <TouchableOpacity style={styles.saveButton} onPress={handleSaveCrop} activeOpacity={0.8}>
-                <Text style={styles.saveButtonText}>Save Crop</Text>
+                <Text style={styles.saveButtonText}>Save Crop Profile</Text>
               </TouchableOpacity>
             </ScrollView>
           </View>
@@ -258,23 +374,73 @@ const styles = StyleSheet.create({
     color: Colors.light.textPrimary,
   },
   addButton: {
+    flexDirection: 'row',
     backgroundColor: Colors.primary,
-    width: 40,
-    height: 40,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  addButtonText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  segmentContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderBottomWidth: 1,
+    borderColor: Colors.light.border,
+    gap: 8,
+  },
+  segmentBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    borderRadius: Border.smallRadius,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    backgroundColor: '#F9FAFB',
+    gap: 6,
+  },
+  segmentBtnActive: {
+    borderColor: Colors.primary,
+    backgroundColor: '#F0F9FF',
+  },
+  segmentBtnText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.light.textSecondary,
+  },
+  segmentBtnTextActive: {
+    color: Colors.primary,
+    fontWeight: '700',
   },
   scrollContent: {
     padding: Spacing.md,
     paddingBottom: 80,
   },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
   sectionTitle: {
     fontSize: FontSizes.lg,
     fontWeight: '700',
     color: Colors.light.textPrimary,
-    marginBottom: Spacing.sm,
     marginLeft: 4,
+  },
+  linkText: {
+    fontSize: FontSizes.sm,
+    fontWeight: '600',
+    color: Colors.primary,
   },
   cropCard: {
     backgroundColor: '#FFFFFF',
@@ -283,6 +449,19 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
     borderWidth: 1,
     borderColor: Colors.light.border,
+  },
+  facilityCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: Border.cardRadius,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    elevation: 1,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -298,6 +477,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: Spacing.sm,
   },
+  facIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: '#F0F9FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.sm,
+  },
   iconText: {
     fontSize: 22,
   },
@@ -309,6 +497,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Colors.light.textPrimary,
   },
+  facCode: {
+    fontSize: 12,
+    color: Colors.light.textSecondary,
+    marginTop: 2,
+  },
   cropStorage: {
     fontSize: FontSizes.sm,
     color: Colors.light.textSecondary,
@@ -316,6 +509,83 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     padding: 6,
+  },
+  facDetailsBox: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: Border.smallRadius,
+    padding: Spacing.sm,
+    marginBottom: Spacing.sm,
+    gap: 6,
+  },
+  facDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  facDetailText: {
+    fontSize: 12,
+    color: Colors.light.textPrimary,
+  },
+  facFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 4,
+  },
+  methodBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  methodBadgeText: {
+    fontSize: 11,
+    color: Colors.light.textSecondary,
+    fontWeight: '500',
+  },
+  statusActiveBadge: {
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  statusActiveText: {
+    color: Colors.healthy,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  emptyState: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: Border.cardRadius,
+    padding: Spacing.xl,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    marginTop: Spacing.md,
+  },
+  emptyTitle: {
+    fontSize: FontSizes.lg,
+    fontWeight: '700',
+    color: Colors.light.textPrimary,
+    marginTop: Spacing.md,
+  },
+  emptySubtitle: {
+    fontSize: FontSizes.sm,
+    color: Colors.light.textSecondary,
+    textAlign: 'center',
+    marginTop: Spacing.xs,
+    marginBottom: Spacing.lg,
+    lineHeight: 18,
+  },
+  emptyBtn: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: Border.buttonRadius,
+  },
+  emptyBtnText: {
+    color: '#FFFFFF',
+    fontSize: FontSizes.md,
+    fontWeight: '600',
   },
   paramsRow: {
     flexDirection: 'row',

@@ -10,6 +10,7 @@ import { AddDeviceScreen } from '../views/AddDeviceScreen';
 import { AddBatchScreen } from '../views/AddBatchScreen';
 import { DeviceShareScreen } from '../views/DeviceShareScreen';
 import { DeviceHealthScreen } from '../views/DeviceHealthScreen';
+import { AddFacilityScreen } from '../views/AddFacilityScreen';
 
 export default function AppEntry() {
   const { currentUser, currentScreen } = useApp();
@@ -33,6 +34,8 @@ export default function AppEntry() {
         return <DeviceDetailScreen />;
       case 'add-device':
         return <AddDeviceScreen />;
+      case 'add-facility':
+        return <AddFacilityScreen />;
       case 'add-batch':
         return <AddBatchScreen />;
       case 'device-share':

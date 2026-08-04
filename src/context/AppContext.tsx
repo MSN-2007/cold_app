@@ -15,6 +15,8 @@ import {
   setCurrentUser,
   getUsers,
   saveUsers,
+  getFacilities,
+  saveFacilities,
   getNextBatchSequence,
   ColdStorage, 
   CropProfile, 
@@ -22,7 +24,8 @@ import {
   ActivityLog, 
   DeviceShare, 
   CropBatch,
-  StorageChamber
+  StorageChamber,
+  Facility
 } from '../data/db';
 import { getString } from '../utils/l10n';
 
@@ -37,7 +40,35 @@ interface AppContextProps {
   updateProfile: (updated: any) => Promise<void>;
   storages: ColdStorage[];
   loadStorages: () => Promise<void>;
-  addStorage: (name: string, connectionType: string, chamberCount: number, deviceId?: string) => Promise<void>;
+  addStorage: (
+    name: string, 
+    connectionType: string, 
+    chamberCount: number, 
+    deviceId?: string,
+    options?: {
+      location?: string;
+      capacityPerChamber?: number;
+      targetTemperature?: number;
+      targetHumidity?: number;
+      ipAddress?: string;
+      macAddress?: string;
+    }
+  ) => Promise<void>;
+  facilities: Facility[];
+  loadFacilities: () => Promise<void>;
+  addFacility: (
+    name: string,
+    connectionMethod: string,
+    facilityCode?: string,
+    options?: {
+      type?: string;
+      location?: string;
+      totalCapacity?: number;
+      climateZone?: string;
+      managerName?: string;
+    }
+  ) => Promise<void>;
+  removeFacility: (id: string) => Promise<void>;
   addBatch: (deviceId: string, chamberId: string, crop: CropProfile, stage: string, quantity: number, unit: string) => Promise<boolean>;
   removeBatch: (deviceId: string, chamberId: string, batchId: string, reason: string) => Promise<boolean>;
   crops: CropProfile[];
@@ -64,6 +95,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [language, setLangState] = useState<string>('English');
   const [currentUser, setUserState] = useState<any | null>(null);
   const [storages, setStorages] = useState<ColdStorage[]>([]);
+  const [facilities, setFacilities] = useState<Facility[]>([]);
   const [crops, setCrops] = useState<CropProfile[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [logs, setLogs] = useState<ActivityLog[]>([]);
@@ -104,9 +136,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         role: 'OWNER'
       };
       setUserState(user || defaultUser);
-      
-      // Load language preference
-      // Wait, let's see. In Flutter language was saved in database under prefs.
+
+      // Load facilities
+      const allFacilities = await getFacilities();
+      setFacilities(allFacilities);
       
       // Load crops
       const allCrops = await getCrops();
@@ -212,24 +245,46 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     setStorages(all);
   };
 
-  const addStorage = async (name: string, connectionType: string, chamberCount: number, deviceId?: string) => {
+  const addStorage = async (
+    name: string, 
+    connectionType: string, 
+    chamberCount: number, 
+    deviceId?: string,
+    options?: {
+      location?: string;
+      capacityPerChamber?: number;
+      targetTemperature?: number;
+      targetHumidity?: number;
+      ipAddress?: string;
+      macAddress?: string;
+    }
+  ) => {
+    const chamberCap = options?.capacityPerChamber || 100;
+    const initialTemp = options?.targetTemperature !== undefined ? options.targetTemperature : 4.0;
+    const initialHum = options?.targetHumidity !== undefined ? options.targetHumidity : 85.0;
+
     const newStorage: ColdStorage = {
       id: deviceId || 'dev-' + Math.random().toString(36).substr(2, 9),
       name,
       status: 'Healthy',
       healthScore: 100,
-      firmwareVersion: '1.0.0',
-      hardwareVersion: '1.0.0',
+      firmwareVersion: 'v2.2.0',
+      hardwareVersion: 'HW-V3-PRO',
       connectionType,
-      totalCapacity: 100 * chamberCount,
+      location: options?.location || 'Main Storage Facility',
+      ipAddress: options?.ipAddress || '192.168.1.150',
+      macAddress: options?.macAddress || 'A4:C1:38:9B:41:00',
+      targetTemperature: initialTemp,
+      targetHumidity: initialHum,
+      totalCapacity: chamberCap * chamberCount,
       chambers: Array.from({ length: chamberCount }, (_, i) => ({
         id: 'ch-' + Math.random().toString(36).substr(2, 9),
-        name: `Chamber ${i + 1}`,
-        temperature: 13.0,
-        humidity: 85.0,
+        name: `Chamber ${String.fromCharCode(65 + i)}`,
+        temperature: initialTemp,
+        humidity: initialHum,
         co2Level: 400,
-        o2Level: 21,
-        ethyleneLevel: 0,
+        o2Level: 20.9,
+        ethyleneLevel: 0.0,
         status: 'Healthy',
         usedCapacity: 0,
         batches: []
@@ -240,7 +295,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     await saveStorages(updated);
     setStorages(updated);
     
-    await addLog(`Added storage device: ${name}`);
+    await addLog(`Added storage device: ${name} (${connectionType})`);
   };
 
   const addBatch = async (
@@ -452,6 +507,56 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     return 'Healthy';
   };
 
+  // Facility operations
+  const loadFacilities = async () => {
+    const all = await getFacilities();
+    setFacilities(all);
+  };
+
+  const addFacility = async (
+    name: string,
+    connectionMethod: string,
+    facilityCode?: string,
+    options?: {
+      type?: string;
+      location?: string;
+      totalCapacity?: number;
+      climateZone?: string;
+      managerName?: string;
+    }
+  ) => {
+    const code = facilityCode || 'FAC-' + Math.floor(1000 + Math.random() * 9000) + '-X';
+    const newFacility: Facility = {
+      id: 'fac-' + Math.random().toString(36).substr(2, 9),
+      facilityCode: code,
+      name,
+      type: options?.type || 'Cold Warehouse',
+      location: options?.location || 'Primary Industrial Zone',
+      connectionMethod,
+      status: 'Active',
+      totalCapacity: options?.totalCapacity || 500,
+      climateZone: options?.climateZone || '0°C to 4°C Cold Storage',
+      managerName: options?.managerName || currentUser?.name || 'Facility Manager',
+      createdAt: new Date().toISOString()
+    };
+
+    const updated = [...facilities, newFacility];
+    await saveFacilities(updated);
+    setFacilities(updated);
+    await addLog(`Registered new storage facility: ${name} (${code}) via ${connectionMethod}`);
+  };
+
+  const removeFacility = async (id: string) => {
+    const facility = facilities.find(f => f.id === id);
+    const updated = facilities.filter(f => f.id !== id);
+    await saveFacilities(updated);
+    setFacilities(updated);
+
+    if (facility) {
+      await addLog(`Removed facility: ${facility.name} (${facility.facilityCode})`);
+    }
+  };
+
   return (
     <AppContext.Provider value={{
       language,
@@ -465,6 +570,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       storages,
       loadStorages,
       addStorage,
+      facilities,
+      loadFacilities,
+      addFacility,
+      removeFacility,
       addBatch,
       removeBatch,
       crops,

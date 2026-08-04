@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Keys
+const FACILITIES_KEY = 'coldsmart_facilities';
 const USERS_KEY = 'coldsmart_users';
 const STORAGES_KEY = 'coldsmart_storages';
 const CROPS_KEY = 'coldsmart_crops';
@@ -11,7 +11,21 @@ const CURRENT_USER_KEY = 'coldsmart_current_user';
 const BATCH_SEQUENCE_KEY = 'coldsmart_batch_seq';
 const SEED_VERSION_KEY = 'coldsmart_seed_version';
 
-const SEED_VERSION = 2;
+const SEED_VERSION = 3;
+
+export interface Facility {
+  id: string;
+  facilityCode: string;
+  name: string;
+  type: string;
+  location: string;
+  connectionMethod: string;
+  status: string;
+  totalCapacity: number;
+  climateZone: string;
+  managerName?: string;
+  createdAt: string;
+}
 
 export interface CropStage {
   id: string;
@@ -80,6 +94,11 @@ export interface ColdStorage {
   connectionType: string;
   totalCapacity: number;
   chambers: StorageChamber[];
+  location?: string;
+  ipAddress?: string;
+  macAddress?: string;
+  targetTemperature?: number;
+  targetHumidity?: number;
 }
 
 export interface Alert {
@@ -340,6 +359,37 @@ export const initDb = async () => {
 };
 
 const seedMockData = async () => {
+  // 0. Seed default facilities
+  const defaultFacilities: Facility[] = [
+    {
+      id: 'fac-central-01',
+      facilityCode: 'FAC-8012-A',
+      name: 'Central Greenfield Warehouse',
+      type: 'Cold Warehouse',
+      location: 'Sector 4 Industrial Park, Zone A',
+      connectionMethod: 'QR Code',
+      status: 'Active',
+      totalCapacity: 1200,
+      climateZone: '0°C to 4°C Cold Storage',
+      managerName: 'Robert Vance',
+      createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+    },
+    {
+      id: 'fac-harvest-02',
+      facilityCode: 'FAC-4409-B',
+      name: 'Harvest Valley Distribution Hub',
+      type: 'Distribution Center',
+      location: 'Valley Highway Exit 12',
+      connectionMethod: 'Bluetooth',
+      status: 'Active',
+      totalCapacity: 800,
+      climateZone: '10°C to 15°C Ambient Control',
+      managerName: 'Sarah Jenkins',
+      createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+    }
+  ];
+  await AsyncStorage.setItem(FACILITIES_KEY, JSON.stringify(defaultFacilities));
+
   // 1. Seed crops
   await AsyncStorage.setItem(CROPS_KEY, JSON.stringify(defaultCrops));
 
@@ -709,4 +759,13 @@ export const getUsers = async (): Promise<any[]> => {
 
 export const saveUsers = async (users: any[]): Promise<void> => {
   await AsyncStorage.setItem(USERS_KEY, JSON.stringify(users));
+};
+
+export const getFacilities = async (): Promise<Facility[]> => {
+  const data = await AsyncStorage.getItem(FACILITIES_KEY);
+  return data ? JSON.parse(data) : [];
+};
+
+export const saveFacilities = async (facilities: Facility[]): Promise<void> => {
+  await AsyncStorage.setItem(FACILITIES_KEY, JSON.stringify(facilities));
 };

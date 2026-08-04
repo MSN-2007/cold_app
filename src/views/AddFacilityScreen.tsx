@@ -15,40 +15,36 @@ import { useApp } from '../context/AppContext';
 import { Colors, Border, FontSizes, Spacing } from '../constants/theme';
 import { MaterialIcons } from '@expo/vector-icons';
 
-export const AddDeviceScreen = () => {
-  const { addStorage, goBack, navigateTo } = useApp();
+export const AddFacilityScreen = () => {
+  const { addFacility, goBack, navigateTo } = useApp();
 
-  // Wizard Step: 1 = Connection, 2 = Configuration, 3 = Confirmation
+  // Wizard Steps: 1 = Pairing Method, 2 = Facility Details, 3 = Confirmation
   const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [connectionMethod, setConnectionMethod] = useState<'QR Code' | 'Bluetooth' | 'WiFi' | 'Device ID'>('QR Code');
+  const [connectionMethod, setConnectionMethod] = useState<'QR Code' | 'Bluetooth' | 'WiFi' | 'Unique Code'>('QR Code');
 
-  // Device Info State
+  // Facility Form State
   const [name, setName] = useState('');
-  const [deviceId, setDeviceId] = useState('');
+  const [facilityCode, setFacilityCode] = useState('');
+  const [type, setType] = useState('Cold Warehouse');
   const [location, setLocation] = useState('');
-  const [chamberCount, setChamberCount] = useState(2);
-  const [capacityPerChamber, setCapacityPerChamber] = useState(100);
-  const [targetTemp, setTargetTemp] = useState(4.0);
-  const [targetHumidity, setTargetHumidity] = useState(88.0);
-  const [ipAddress, setIpAddress] = useState('192.168.1.182');
-  const [macAddress, setMacAddress] = useState('A4:C1:38:9B:41:00');
+  const [capacity, setCapacity] = useState(500);
+  const [climateZone, setClimateZone] = useState('0°C to 4°C Cold Storage');
+  const [managerName, setManagerName] = useState('');
 
   // Simulation states
   const [isScanning, setIsScanning] = useState(false);
   const [flashOn, setFlashOn] = useState(false);
   const [btScanning, setBtScanning] = useState(false);
   const [selectedBtDevice, setSelectedBtDevice] = useState<string | null>(null);
-  const [wifiSsid, setWifiSsid] = useState('AgriCold_Farm_5G');
+  const [wifiSsid, setWifiSsid] = useState('Facility_Mesh_5G');
   const [wifiPassword, setWifiPassword] = useState('');
   const [isWifiConnecting, setIsWifiConnecting] = useState(false);
-  const [wifiConnected, setWifiConnected] = useState(false);
 
-  // Validation / Success UI
+  // Validation / Modal
   const [error, setError] = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [createdDeviceId, setCreatedDeviceId] = useState('');
 
-  // Scanner animation
+  // QR laser animation
   const scanAnim = React.useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -62,30 +58,43 @@ export const AddDeviceScreen = () => {
     }
   }, [connectionMethod]);
 
-  // Bluetooth scanning simulation trigger
+  // Bluetooth scanning trigger
   useEffect(() => {
     if (connectionMethod === 'Bluetooth') {
       setBtScanning(true);
       const timer = setTimeout(() => {
         setBtScanning(false);
-      }, 1500);
+      }, 1400);
       return () => clearTimeout(timer);
     }
   }, [connectionMethod]);
 
-  const connectionMethods: Array<'QR Code' | 'Bluetooth' | 'WiFi' | 'Device ID'> = [
+  const connectionMethods: Array<'QR Code' | 'Bluetooth' | 'WiFi' | 'Unique Code'> = [
     'QR Code',
     'Bluetooth',
     'WiFi',
-    'Device ID'
+    'Unique Code'
+  ];
+
+  const facilityTypes = [
+    'Cold Warehouse',
+    'Packhouse',
+    'Distribution Center',
+    'Refrigerated Transit'
+  ];
+
+  const climateZones = [
+    '0°C to 4°C Cold Storage',
+    '-20°C Deep Freeze',
+    '10°C to 15°C Ambient Control'
   ];
 
   // Helper for QR sample scan
-  const handleScanSampleQR = (scannedName: string, id: string) => {
+  const handleScanSampleQR = (facilityName: string, code: string) => {
     setIsScanning(true);
     setTimeout(() => {
-      setName(scannedName);
-      setDeviceId(id);
+      setName(facilityName);
+      setFacilityCode(code);
       setIsScanning(false);
       setError('');
       setStep(2);
@@ -93,11 +102,10 @@ export const AddDeviceScreen = () => {
   };
 
   // Helper for BLE pair
-  const handlePairBtDevice = (devName: string, id: string, mac: string) => {
-    setSelectedBtDevice(id);
-    setName(devName);
-    setDeviceId(id);
-    setMacAddress(mac);
+  const handlePairBtGateway = (gatewayName: string, code: string) => {
+    setSelectedBtDevice(code);
+    setName(gatewayName);
+    setFacilityCode(code);
     setError('');
     setTimeout(() => {
       setStep(2);
@@ -107,56 +115,48 @@ export const AddDeviceScreen = () => {
   // Helper for WiFi connect
   const handleConnectWifi = () => {
     if (!wifiSsid) {
-      setError('Please select or enter a WiFi Network');
+      setError('Please select a Facility WiFi Network');
       return;
     }
     setIsWifiConnecting(true);
     setTimeout(() => {
       setIsWifiConnecting(false);
-      setWifiConnected(true);
-      setName(wifiSsid.replace('_', ' ') + ' Storage');
-      setDeviceId('dev-wifi-' + Math.floor(1000 + Math.random() * 9000));
+      setName(wifiSsid.replace('_', ' ') + ' Facility');
+      setFacilityCode('FAC-' + Math.floor(1000 + Math.random() * 9000) + '-W');
       setError('');
-      setTimeout(() => {
-        setStep(2);
-      }, 500);
+      setStep(2);
     }, 1200);
   };
 
-  // Step 1 -> Step 2 validation
   const handleProceedToConfig = () => {
-    if (connectionMethod === 'Device ID' && !deviceId.trim()) {
-      setError('Please enter a Device Serial ID or scan a device');
+    if (connectionMethod === 'Unique Code' && !facilityCode.trim()) {
+      setError('Please enter a Unique Facility Code');
       return;
     }
     if (!name.trim()) {
-      setName(deviceId ? `Cold Storage (${deviceId})` : 'New Cold Storage Unit');
+      setName(facilityCode ? `Facility (${facilityCode})` : 'New Storage Facility');
     }
     setError('');
     setStep(2);
   };
 
-  // Final Add Storage action
   const handleFinalSubmit = async () => {
-    const finalName = name.trim() || 'New Cold Storage Unit';
-    const finalId = deviceId.trim() || 'dev-' + Math.random().toString(36).substr(2, 8);
+    const finalName = name.trim() || 'New Storage Facility';
+    const finalCode = facilityCode.trim() || 'FAC-' + Math.floor(1000 + Math.random() * 9000) + '-X';
 
-    await addStorage(
+    await addFacility(
       finalName,
       connectionMethod,
-      chamberCount,
-      finalId,
+      finalCode,
       {
-        location: location.trim() || 'Primary Facility - Zone A',
-        capacityPerChamber,
-        targetTemperature: targetTemp,
-        targetHumidity,
-        ipAddress,
-        macAddress
+        type,
+        location: location.trim() || 'Primary Industrial Sector',
+        totalCapacity: capacity,
+        climateZone,
+        managerName: managerName.trim() || 'Facility Operator'
       }
     );
 
-    setCreatedDeviceId(finalId);
     setShowSuccessModal(true);
   };
 
@@ -166,14 +166,14 @@ export const AddDeviceScreen = () => {
         <View style={[styles.stepBadge, step >= 1 && styles.stepBadgeActive]}>
           <Text style={[styles.stepBadgeText, step >= 1 && styles.stepBadgeTextActive]}>1</Text>
         </View>
-        <Text style={[styles.stepLabel, step >= 1 && styles.stepLabelActive]}>Connect</Text>
+        <Text style={[styles.stepLabel, step >= 1 && styles.stepLabelActive]}>Method</Text>
 
         <View style={[styles.stepLine, step >= 2 && styles.stepLineActive]} />
 
         <View style={[styles.stepBadge, step >= 2 && styles.stepBadgeActive]}>
           <Text style={[styles.stepBadgeText, step >= 2 && styles.stepBadgeTextActive]}>2</Text>
         </View>
-        <Text style={[styles.stepLabel, step >= 2 && styles.stepLabelActive]}>Configure</Text>
+        <Text style={[styles.stepLabel, step >= 2 && styles.stepLabelActive]}>Details</Text>
 
         <View style={[styles.stepLine, step >= 3 && styles.stepLineActive]} />
 
@@ -192,7 +192,7 @@ export const AddDeviceScreen = () => {
         <TouchableOpacity onPress={step === 1 ? goBack : () => setStep((step - 1) as any)} style={styles.headerBack}>
           <MaterialIcons name="arrow-back" size={24} color={Colors.light.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.title}>Add Cold Storage Device</Text>
+        <Text style={styles.title}>Add New Facility</Text>
         <View style={{ width: 32 }} />
       </View>
 
@@ -206,12 +206,12 @@ export const AddDeviceScreen = () => {
           </View>
         ) : null}
 
-        {/* STEP 1: CONNECTION METHOD */}
+        {/* STEP 1: PAIRING METHOD */}
         {step === 1 && (
           <View style={styles.stepBox}>
-            <Text style={styles.sectionTitle}>Select Connection Method</Text>
+            <Text style={styles.sectionTitle}>Facility Registration Method</Text>
             <Text style={styles.sectionSubtitle}>
-              Pair your cold storage controller or sensor hub via QR code, Bluetooth BLE, WiFi network, or Serial ID.
+              Pair your new warehouse, packhouse, or cold storage facility via QR code, Bluetooth BLE, WiFi gateway, or Unique Code.
             </Text>
 
             <View style={styles.methodTabRow}>
@@ -220,7 +220,7 @@ export const AddDeviceScreen = () => {
                 let iconName: any = 'qr-code-scanner';
                 if (m === 'Bluetooth') iconName = 'bluetooth-searching';
                 if (m === 'WiFi') iconName = 'wifi';
-                if (m === 'Device ID') iconName = 'phonelink-setup';
+                if (m === 'Unique Code') iconName = 'pin';
 
                 return (
                   <TouchableOpacity
@@ -245,7 +245,7 @@ export const AddDeviceScreen = () => {
               })}
             </View>
 
-            {/* QR CODE SCANNER VIEW */}
+            {/* QR CODE METHOD */}
             {connectionMethod === 'QR Code' && (
               <View style={styles.qrSection}>
                 <View style={styles.viewfinderFrame}>
@@ -279,28 +279,28 @@ export const AddDeviceScreen = () => {
                   </View>
                 </View>
 
-                <Text style={styles.sampleScanTitle}>Discovered QR Codes Nearby:</Text>
+                <Text style={styles.sampleScanTitle}>Discovered Facility QR Badges:</Text>
                 <View style={styles.sampleScanContainer}>
                   <TouchableOpacity 
                     style={styles.sampleScanCard}
-                    onPress={() => handleScanSampleQR('Greenfield Cold Storage Alpha', 'DEV-QR-901')}
+                    onPress={() => handleScanSampleQR('Greenfield Logistics Park', 'FAC-QR-901')}
                   >
-                    <MaterialIcons name="qr-code" size={24} color={Colors.primary} />
+                    <MaterialIcons name="apartment" size={24} color={Colors.primary} />
                     <View style={{ flex: 1, marginLeft: 10 }}>
-                      <Text style={styles.sampleScanName}>Greenfield Cold Storage Alpha</Text>
-                      <Text style={styles.sampleScanId}>ID: DEV-QR-901 · WiFi 5GHz</Text>
+                      <Text style={styles.sampleScanName}>Greenfield Logistics Park</Text>
+                      <Text style={styles.sampleScanId}>Code: FAC-QR-901 · Cold Warehouse</Text>
                     </View>
                     <MaterialIcons name="chevron-right" size={20} color={Colors.light.textHint} />
                   </TouchableOpacity>
 
                   <TouchableOpacity 
                     style={styles.sampleScanCard}
-                    onPress={() => handleScanSampleQR('AgriVault Solar Freezer', 'DEV-QR-884')}
+                    onPress={() => handleScanSampleQR('Harvest Valley Processing Center', 'FAC-QR-884')}
                   >
-                    <MaterialIcons name="qr-code" size={24} color={Colors.primary} />
+                    <MaterialIcons name="apartment" size={24} color={Colors.primary} />
                     <View style={{ flex: 1, marginLeft: 10 }}>
-                      <Text style={styles.sampleScanName}>AgriVault Solar Freezer</Text>
-                      <Text style={styles.sampleScanId}>ID: DEV-QR-884 · BLE v5.2</Text>
+                      <Text style={styles.sampleScanName}>Harvest Valley Processing Center</Text>
+                      <Text style={styles.sampleScanId}>Code: FAC-QR-884 · Packhouse</Text>
                     </View>
                     <MaterialIcons name="chevron-right" size={20} color={Colors.light.textHint} />
                   </TouchableOpacity>
@@ -308,31 +308,31 @@ export const AddDeviceScreen = () => {
               </View>
             )}
 
-            {/* BLUETOOTH BLE SCANNER VIEW */}
+            {/* BLUETOOTH BLE METHOD */}
             {connectionMethod === 'Bluetooth' && (
               <View style={styles.btSection}>
                 {btScanning ? (
                   <View style={styles.scanningBox}>
                     <ActivityIndicator size="large" color={Colors.primary} />
-                    <Text style={styles.scanningText}>Searching for nearby BLE Cold Controllers...</Text>
+                    <Text style={styles.scanningText}>Searching for nearby BLE Facility Beacons...</Text>
                   </View>
                 ) : (
                   <View style={styles.btListContainer}>
                     <View style={styles.btListHeader}>
-                      <Text style={styles.sampleScanTitle}>Available Bluetooth Devices:</Text>
+                      <Text style={styles.sampleScanTitle}>Discovered Facility Gateways:</Text>
                       <TouchableOpacity onPress={() => setBtScanning(true)}>
                         <Text style={styles.rescanText}>Refresh</Text>
                       </TouchableOpacity>
                     </View>
 
                     <TouchableOpacity 
-                      style={[styles.btCard, selectedBtDevice === 'DEV-BLE-402' && styles.btCardSelected]}
-                      onPress={() => handlePairBtDevice('ColdBox BLE Controller #402', 'DEV-BLE-402', 'E4:5F:01:23:45:67')}
+                      style={[styles.btCard, selectedBtDevice === 'FAC-BLE-801' && styles.btCardSelected]}
+                      onPress={() => handlePairBtGateway('Delta Port Warehouse Beacon', 'FAC-BLE-801')}
                     >
                       <MaterialIcons name="bluetooth" size={24} color={Colors.primary} />
                       <View style={{ flex: 1, marginLeft: 12 }}>
-                        <Text style={styles.sampleScanName}>ColdBox BLE Controller #402</Text>
-                        <Text style={styles.sampleScanId}>Signal: Strong (-52 dBm) · MAC: E4:5F:01:23</Text>
+                        <Text style={styles.sampleScanName}>Delta Port Warehouse Beacon</Text>
+                        <Text style={styles.sampleScanId}>Signal: Strong (-48 dBm) · Code: FAC-BLE-801</Text>
                       </View>
                       <TouchableOpacity style={styles.pairChip}>
                         <Text style={styles.pairChipText}>Pair</Text>
@@ -340,13 +340,13 @@ export const AddDeviceScreen = () => {
                     </TouchableOpacity>
 
                     <TouchableOpacity 
-                      style={[styles.btCard, selectedBtDevice === 'DEV-BLE-109' && styles.btCardSelected]}
-                      onPress={() => handlePairBtDevice('AgriChill Mobile Vault #109', 'DEV-BLE-109', 'C8:2A:14:88:90:12')}
+                      style={[styles.btCard, selectedBtDevice === 'FAC-BLE-402' && styles.btCardSelected]}
+                      onPress={() => handlePairBtGateway('AgriHub Transit Hub Beacon', 'FAC-BLE-402')}
                     >
                       <MaterialIcons name="bluetooth" size={24} color={Colors.primary} />
                       <View style={{ flex: 1, marginLeft: 12 }}>
-                        <Text style={styles.sampleScanName}>AgriChill Mobile Vault #109</Text>
-                        <Text style={styles.sampleScanId}>Signal: Good (-68 dBm) · MAC: C8:2A:14:88</Text>
+                        <Text style={styles.sampleScanName}>AgriHub Transit Hub Beacon</Text>
+                        <Text style={styles.sampleScanId}>Signal: Good (-65 dBm) · Code: FAC-BLE-402</Text>
                       </View>
                       <TouchableOpacity style={styles.pairChip}>
                         <Text style={styles.pairChipText}>Pair</Text>
@@ -357,12 +357,12 @@ export const AddDeviceScreen = () => {
               </View>
             )}
 
-            {/* WIFI PROVISIONING VIEW */}
+            {/* WIFI GATEWAY METHOD */}
             {connectionMethod === 'WiFi' && (
               <View style={styles.wifiSection}>
-                <Text style={styles.inputLabel}>Select Storage WiFi Network</Text>
+                <Text style={styles.inputLabel}>Facility WiFi Network</Text>
                 <View style={styles.wifiSelectBox}>
-                  {['AgriCold_Farm_5G', 'ColdVault_Mesh_2', 'StorageNet_Guest'].map(ssid => (
+                  {['Facility_Mesh_5G', 'AgriWarehouse_Guest', 'ColdPack_Secure'].map(ssid => (
                     <TouchableOpacity 
                       key={ssid} 
                       style={[styles.wifiOption, wifiSsid === ssid && styles.wifiOptionSelected]}
@@ -376,12 +376,12 @@ export const AddDeviceScreen = () => {
                 </View>
 
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>WiFi Network Password</Text>
+                  <Text style={styles.inputLabel}>Facility Gateway WPA2 Password</Text>
                   <View style={styles.inputContainer}>
                     <MaterialIcons name="lock-outline" size={20} color={Colors.light.textSecondary} style={styles.inputIcon} />
                     <TextInput
                       style={styles.input}
-                      placeholder="Enter network WPA2 key"
+                      placeholder="Enter facility password"
                       placeholderTextColor={Colors.light.textHint}
                       secureTextEntry
                       value={wifiPassword}
@@ -400,73 +400,72 @@ export const AddDeviceScreen = () => {
                   ) : (
                     <>
                       <MaterialIcons name="wifi-tethering" size={20} color="#FFFFFF" style={{ marginRight: 6 }} />
-                      <Text style={styles.wifiConnectBtnText}>Test & Connect Device</Text>
+                      <Text style={styles.wifiConnectBtnText}>Verify Gateway & Connect</Text>
                     </>
                   )}
                 </TouchableOpacity>
               </View>
             )}
 
-            {/* MANUAL DEVICE ID VIEW */}
-            {connectionMethod === 'Device ID' && (
+            {/* UNIQUE CODE METHOD */}
+            {connectionMethod === 'Unique Code' && (
               <View style={styles.manualSection}>
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Storage Device Name</Text>
+                  <Text style={styles.inputLabel}>Unique Facility Access Code</Text>
                   <View style={styles.inputContainer}>
-                    <MaterialIcons name="ac-unit" size={20} color={Colors.light.textSecondary} style={styles.inputIcon} />
+                    <MaterialIcons name="vpn-key" size={20} color={Colors.light.textSecondary} style={styles.inputIcon} />
                     <TextInput
                       style={styles.input}
-                      placeholder="e.g. North Storage Unit 01"
+                      placeholder="e.g. FAC-7742-X"
+                      placeholderTextColor={Colors.light.textHint}
+                      value={facilityCode}
+                      onChangeText={setFacilityCode}
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Facility Name (Optional)</Text>
+                  <View style={styles.inputContainer}>
+                    <MaterialIcons name="business" size={20} color={Colors.light.textSecondary} style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="e.g. Greenfield North Facility"
                       placeholderTextColor={Colors.light.textHint}
                       value={name}
                       onChangeText={setName}
                     />
                   </View>
                 </View>
-
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Device Hardware Serial ID</Text>
-                  <View style={styles.inputContainer}>
-                    <MaterialIcons name="qr-code" size={20} color={Colors.light.textSecondary} style={styles.inputIcon} />
-                    <TextInput
-                      style={styles.input}
-                      placeholder="e.g. DEV-COLD-9041"
-                      placeholderTextColor={Colors.light.textHint}
-                      value={deviceId}
-                      onChangeText={setDeviceId}
-                    />
-                  </View>
-                </View>
               </View>
             )}
 
-            {/* Step 1 Next Button */}
             <TouchableOpacity 
               style={styles.nextButton} 
               onPress={handleProceedToConfig}
               activeOpacity={0.8}
             >
-              <Text style={styles.nextButtonText}>Continue to Storage Setup</Text>
+              <Text style={styles.nextButtonText}>Continue to Facility Setup</Text>
               <MaterialIcons name="arrow-forward" size={20} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
         )}
 
-        {/* STEP 2: STORAGE & CHAMBERS SETUP */}
+        {/* STEP 2: FACILITY DETAILS */}
         {step === 2 && (
           <View style={styles.stepBox}>
-            <Text style={styles.sectionTitle}>Configure Storage Parameters</Text>
+            <Text style={styles.sectionTitle}>Configure Facility Parameters</Text>
             <Text style={styles.sectionSubtitle}>
-              Define chamber count, capacity limits, and baseline temperature & humidity setpoints.
+              Specify facility type, storage capacity, location address, and climate control zones.
             </Text>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Storage Device Name</Text>
+              <Text style={styles.inputLabel}>Facility Name</Text>
               <View style={styles.inputContainer}>
-                <MaterialIcons name="edit" size={20} color={Colors.light.textSecondary} style={styles.inputIcon} />
+                <MaterialIcons name="business" size={20} color={Colors.light.textSecondary} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
-                  placeholder="e.g. Greenfield Multi-Temp Storage"
+                  placeholder="e.g. Central Cold Warehouse"
                   placeholderTextColor={Colors.light.textHint}
                   value={name}
                   onChangeText={setName}
@@ -475,12 +474,27 @@ export const AddDeviceScreen = () => {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Location / Warehouse Zone</Text>
+              <Text style={styles.inputLabel}>Facility Type</Text>
+              <View style={styles.typeRow}>
+                {facilityTypes.map(t => (
+                  <TouchableOpacity
+                    key={t}
+                    style={[styles.typeChip, type === t && styles.typeChipSelected]}
+                    onPress={() => setType(t)}
+                  >
+                    <Text style={[styles.typeChipText, type === t && styles.typeChipTextSelected]}>{t}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Location / Street Address</Text>
               <View style={styles.inputContainer}>
-                <MaterialIcons name="location-on" size={20} color={Colors.light.textSecondary} style={styles.inputIcon} />
+                <MaterialIcons name="place" size={20} color={Colors.light.textSecondary} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
-                  placeholder="e.g. Sector 4 Farm, Bay B"
+                  placeholder="e.g. Sector 4 Industrial Park, Bay A"
                   placeholderTextColor={Colors.light.textHint}
                   value={location}
                   onChangeText={setLocation}
@@ -488,42 +502,16 @@ export const AddDeviceScreen = () => {
               </View>
             </View>
 
-            {/* Chamber Count Stepper */}
-            <View style={styles.chambersRow}>
-              <View>
-                <Text style={styles.chambersLabel}>Number of Storage Chambers</Text>
-                <Text style={styles.chambersSubtext}>Independent temperature control zones</Text>
-              </View>
-              <View style={styles.adjusterRow}>
-                <TouchableOpacity 
-                  style={[styles.adjusterButton, chamberCount <= 1 && styles.adjusterButtonDisabled]} 
-                  onPress={() => chamberCount > 1 && setChamberCount(chamberCount - 1)}
-                  disabled={chamberCount <= 1}
-                >
-                  <MaterialIcons name="remove" size={20} color={chamberCount <= 1 ? Colors.light.textHint : Colors.light.textPrimary} />
-                </TouchableOpacity>
-                <Text style={styles.chamberCountText}>{chamberCount}</Text>
-                <TouchableOpacity 
-                  style={[styles.adjusterButton, chamberCount >= 8 && styles.adjusterButtonDisabled]} 
-                  onPress={() => chamberCount < 8 && setChamberCount(chamberCount + 1)}
-                  disabled={chamberCount >= 8}
-                >
-                  <MaterialIcons name="add" size={20} color={chamberCount >= 8 ? Colors.light.textHint : Colors.light.textPrimary} />
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Capacity per Chamber */}
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Capacity per Chamber (Tons)</Text>
+              <Text style={styles.inputLabel}>Total Facility Capacity (Tons)</Text>
               <View style={styles.capacityChipRow}>
-                {[50, 100, 200, 500].map(cap => (
+                {[250, 500, 1000, 2500].map(cap => (
                   <TouchableOpacity 
                     key={cap}
-                    style={[styles.capacityChip, capacityPerChamber === cap && styles.capacityChipSelected]}
-                    onPress={() => setCapacityPerChamber(cap)}
+                    style={[styles.capacityChip, capacity === cap && styles.capacityChipSelected]}
+                    onPress={() => setCapacity(cap)}
                   >
-                    <Text style={[styles.capacityChipText, capacityPerChamber === cap && styles.capacityChipTextSelected]}>
+                    <Text style={[styles.capacityChipText, capacity === cap && styles.capacityChipTextSelected]}>
                       {cap} Tons
                     </Text>
                   </TouchableOpacity>
@@ -531,31 +519,32 @@ export const AddDeviceScreen = () => {
               </View>
             </View>
 
-            {/* Preset Temperature Target */}
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Target Storage Temperature</Text>
-              <View style={styles.presetRow}>
-                <TouchableOpacity 
-                  style={[styles.presetCard, targetTemp === 2.0 && styles.presetCardSelected]}
-                  onPress={() => { setTargetTemp(2.0); setTargetHumidity(92.0); }}
-                >
-                  <Text style={styles.presetTitle}>Cold (2.0°C)</Text>
-                  <Text style={styles.presetSub}>Apples / Leafy</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.presetCard, targetTemp === 4.0 && styles.presetCardSelected]}
-                  onPress={() => { setTargetTemp(4.0); setTargetHumidity(88.0); }}
-                >
-                  <Text style={styles.presetTitle}>Cool (4.0°C)</Text>
-                  <Text style={styles.presetSub}>Potatoes / Roots</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.presetCard, targetTemp === 13.0 && styles.presetCardSelected]}
-                  onPress={() => { setTargetTemp(13.0); setTargetHumidity(85.0); }}
-                >
-                  <Text style={styles.presetTitle}>Mild (13.0°C)</Text>
-                  <Text style={styles.presetSub}>Tomatoes / Mangoes</Text>
-                </TouchableOpacity>
+              <Text style={styles.inputLabel}>Climate Control Zone</Text>
+              <View style={styles.climateRow}>
+                {climateZones.map(cz => (
+                  <TouchableOpacity
+                    key={cz}
+                    style={[styles.climateCard, climateZone === cz && styles.climateCardSelected]}
+                    onPress={() => setClimateZone(cz)}
+                  >
+                    <Text style={[styles.climateTitle, climateZone === cz && styles.climateTitleSelected]}>{cz}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Facility Manager Name</Text>
+              <View style={styles.inputContainer}>
+                <MaterialIcons name="person-outline" size={20} color={Colors.light.textSecondary} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="e.g. Robert Vance"
+                  placeholderTextColor={Colors.light.textHint}
+                  value={managerName}
+                  onChangeText={setManagerName}
+                />
               </View>
             </View>
 
@@ -564,7 +553,7 @@ export const AddDeviceScreen = () => {
               onPress={() => setStep(3)}
               activeOpacity={0.8}
             >
-              <Text style={styles.nextButtonText}>Review Storage Details</Text>
+              <Text style={styles.nextButtonText}>Review Facility Summary</Text>
               <MaterialIcons name="arrow-forward" size={20} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
@@ -573,43 +562,43 @@ export const AddDeviceScreen = () => {
         {/* STEP 3: REVIEW & CONFIRM */}
         {step === 3 && (
           <View style={styles.stepBox}>
-            <Text style={styles.sectionTitle}>Review Storage Details</Text>
+            <Text style={styles.sectionTitle}>Review Facility Information</Text>
             <Text style={styles.sectionSubtitle}>
-              Please confirm your new cold storage configuration before activating.
+              Please verify the facility details before saving it to your inventory network.
             </Text>
 
             <View style={styles.summaryCard}>
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Device Name:</Text>
-                <Text style={styles.summaryValue}>{name || 'Cold Storage Unit'}</Text>
+                <Text style={styles.summaryLabel}>Facility Name:</Text>
+                <Text style={styles.summaryValue}>{name || 'Storage Facility'}</Text>
               </View>
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Device ID:</Text>
-                <Text style={styles.summaryValue}>{deviceId || 'Auto-generated'}</Text>
+                <Text style={styles.summaryLabel}>Facility Code:</Text>
+                <Text style={styles.summaryValue}>{facilityCode || 'Auto-generated'}</Text>
               </View>
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Connection:</Text>
+                <Text style={styles.summaryLabel}>Pairing Method:</Text>
                 <Text style={styles.summaryValue}>{connectionMethod}</Text>
               </View>
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Location:</Text>
-                <Text style={styles.summaryValue}>{location || 'Main Warehouse Zone'}</Text>
+                <Text style={styles.summaryLabel}>Facility Type:</Text>
+                <Text style={styles.summaryValue}>{type}</Text>
               </View>
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Total Chambers:</Text>
-                <Text style={styles.summaryValue}>{chamberCount} Chambers</Text>
+                <Text style={styles.summaryLabel}>Location:</Text>
+                <Text style={styles.summaryValue}>{location || 'Industrial Zone'}</Text>
               </View>
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Total Capacity:</Text>
-                <Text style={styles.summaryValue}>{chamberCount * capacityPerChamber} Tons</Text>
+                <Text style={styles.summaryValue}>{capacity} Tons</Text>
               </View>
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Baseline Temp:</Text>
-                <Text style={styles.summaryValue}>{targetTemp}°C</Text>
+                <Text style={styles.summaryLabel}>Climate Zone:</Text>
+                <Text style={styles.summaryValue}>{climateZone}</Text>
               </View>
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Baseline Humidity:</Text>
-                <Text style={styles.summaryValue}>{targetHumidity}%</Text>
+                <Text style={styles.summaryLabel}>Manager:</Text>
+                <Text style={styles.summaryValue}>{managerName || 'Operator'}</Text>
               </View>
             </View>
 
@@ -619,7 +608,7 @@ export const AddDeviceScreen = () => {
               activeOpacity={0.8}
             >
               <MaterialIcons name="check-circle" size={22} color="#FFFFFF" style={{ marginRight: 8 }} />
-              <Text style={styles.submitButtonText}>Confirm & Add Device</Text>
+              <Text style={styles.submitButtonText}>Confirm & Register Facility</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -630,31 +619,21 @@ export const AddDeviceScreen = () => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <View style={styles.successIconCircle}>
-              <MaterialIcons name="check" size={40} color="#FFFFFF" />
+              <MaterialIcons name="apartment" size={40} color="#FFFFFF" />
             </View>
-            <Text style={styles.modalTitle}>Device Added Successfully!</Text>
+            <Text style={styles.modalTitle}>Facility Added Successfully!</Text>
             <Text style={styles.modalSubtitle}>
-              {name || 'New Cold Storage'} has been connected and is now monitoring temperature and humidity.
+              {name || 'Storage Facility'} has been added to your inventory facility network.
             </Text>
 
             <TouchableOpacity 
               style={styles.modalPrimaryBtn}
               onPress={() => {
                 setShowSuccessModal(false);
-                navigateTo('device-detail', { id: createdDeviceId });
+                navigateTo('main');
               }}
             >
-              <Text style={styles.modalPrimaryBtnText}>Go to Device Dashboard</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={styles.modalSecondaryBtn}
-              onPress={() => {
-                setShowSuccessModal(false);
-                goBack();
-              }}
-            >
-              <Text style={styles.modalSecondaryBtnText}>Back to Devices List</Text>
+              <Text style={styles.modalPrimaryBtnText}>Go to Inventory & Facilities</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1010,51 +989,30 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.md,
     color: Colors.light.textPrimary,
   },
-  chambersRow: {
+  typeRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#F8FAFC',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  typeChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: Border.smallRadius,
     borderWidth: 1,
     borderColor: Colors.light.border,
-    borderRadius: Border.cardRadius,
-    padding: Spacing.md,
-    marginBottom: Spacing.md,
+    backgroundColor: '#F9FAFB',
   },
-  chambersLabel: {
-    fontSize: FontSizes.md,
-    color: Colors.light.textPrimary,
+  typeChipSelected: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  typeChipText: {
+    fontSize: 12,
     fontWeight: '600',
-  },
-  chambersSubtext: {
-    fontSize: 11,
-    color: Colors.light.textSecondary,
-    marginTop: 2,
-  },
-  adjusterRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  adjusterButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: Colors.light.border,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  adjusterButtonDisabled: {
-    backgroundColor: '#F3F4F6',
-  },
-  chamberCountText: {
-    fontSize: FontSizes.lg,
-    fontWeight: '700',
     color: Colors.light.textPrimary,
-    minWidth: 16,
-    textAlign: 'center',
+  },
+  typeChipTextSelected: {
+    color: '#FFFFFF',
   },
   capacityChipRow: {
     flexDirection: 'row',
@@ -1081,32 +1039,28 @@ const styles = StyleSheet.create({
   capacityChipTextSelected: {
     color: '#FFFFFF',
   },
-  presetRow: {
-    flexDirection: 'row',
+  climateRow: {
     gap: 6,
   },
-  presetCard: {
-    flex: 1,
+  climateCard: {
     padding: Spacing.sm,
     borderRadius: Border.smallRadius,
     borderWidth: 1,
     borderColor: Colors.light.border,
     backgroundColor: '#F9FAFB',
-    alignItems: 'center',
   },
-  presetCardSelected: {
+  climateCardSelected: {
     borderColor: Colors.primary,
     backgroundColor: '#F0F9FF',
   },
-  presetTitle: {
+  climateTitle: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
     color: Colors.light.textPrimary,
   },
-  presetSub: {
-    fontSize: 10,
-    color: Colors.light.textSecondary,
-    marginTop: 2,
+  climateTitleSelected: {
+    color: Colors.primary,
+    fontWeight: '700',
   },
   nextButton: {
     flexDirection: 'row',
@@ -1204,22 +1158,10 @@ const styles = StyleSheet.create({
     borderRadius: Border.buttonRadius,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
   },
   modalPrimaryBtnText: {
     color: '#FFFFFF',
     fontSize: FontSizes.md,
-    fontWeight: '600',
-  },
-  modalSecondaryBtn: {
-    width: '100%',
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalSecondaryBtnText: {
-    color: Colors.light.textSecondary,
-    fontSize: FontSizes.sm,
     fontWeight: '600',
   },
 });
