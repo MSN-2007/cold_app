@@ -15,14 +15,14 @@ export default function AppEntry() {
   const { currentUser, currentScreen } = useApp();
   const [isLoginView, setIsLoginView] = useState(true);
 
-  // Render auth flows if no user session is established
-  if (!currentUser) {
-    return isLoginView ? (
-      <LoginScreen onSwitchToSignup={() => setIsLoginView(false)} />
-    ) : (
-      <SignupScreen onSwitchToLogin={() => setIsLoginView(true)} />
-    );
-  }
+  // Auth check bypassed temporarily for product testing
+  // if (!currentUser) {
+  //   return isLoginView ? (
+  //     <LoginScreen onSwitchToSignup={() => setIsLoginView(false)} />
+  //   ) : (
+  //     <SignupScreen onSwitchToLogin={() => setIsLoginView(true)} />
+  //   );
+  // }
 
   // Render authenticated screens based on custom state router
   const renderScreen = () => {

@@ -94,11 +94,16 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const startup = async () => {
       await initDb();
       
-      // Load current user
+      // Load current user (default to demo user for testing)
       const user = await getCurrentUser();
-      if (user) {
-        setUserState(user);
-      }
+      const defaultUser = {
+        id: 'user-demo-owner',
+        name: 'Demo Owner',
+        email: 'demo@coldapp.com',
+        phone: '+1 (555) 019-2834',
+        role: 'OWNER'
+      };
+      setUserState(user || defaultUser);
       
       // Load language preference
       // Wait, let's see. In Flutter language was saved in database under prefs.
